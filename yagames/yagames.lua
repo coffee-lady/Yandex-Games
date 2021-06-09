@@ -9,7 +9,7 @@ local M = {
     leaderboards_ready = false,
     payments_ready = false,
     player_ready = false,
-    banner_ready = false
+    banner_ready = false,
 }
 
 local init_callback = nil
@@ -43,8 +43,7 @@ end
 -- @tparam function callback
 function M.init(callback)
     if not yagames_private then
-        print(
-            "YaGames is only available on the HTML5 platform. You will use the mocked version that is suitable only for testing.")
+        print("YaGames is only available on the HTML5 platform. You will use the mocked version that is suitable only for testing.")
         mock.enable()
     end
 
@@ -197,7 +196,7 @@ function M.payments_init(options, callback)
     assert(type(callback) == "function")
 
     yagames_private.get_payments(helper.wrap_for_promise(function(self, err)
-        M.payments_ready = not err
+        M.payments_ready = true
 
         callback(self, err)
     end), rxi_json.encode(options or {}))
@@ -289,13 +288,12 @@ end
 function M.player_get_ids_per_game(callback)
     assert(type(callback) == "function")
 
-    yagames_private.player_get_ids_per_game(helper.wrap_for_promise(
-                                                function(self, err, arr)
-            if arr then
-                arr = rxi_json.decode(arr)
-            end
-            callback(self, err, arr)
-        end))
+    yagames_private.player_get_ids_per_game(helper.wrap_for_promise(function(self, err, arr)
+        if arr then
+            arr = rxi_json.decode(arr)
+        end
+        callback(self, err, arr)
+    end))
 end
 
 --- Возвращает имя пользователя.
@@ -405,8 +403,8 @@ function M.banner_create(rtb_id, options, callback)
     assert(type(rtb_id) == "string")
     assert(type(options) == "table")
 
-    yagames_private.banner_create(rtb_id, rxi_json.encode(options),
-        callback and helper.wrap_for_promise(function(self, err, data)
+    yagames_private.banner_create(rtb_id, rxi_json.encode(options), callback and helper.wrap_for_promise(
+        function(self, err, data)
             if not err then
                 data = rxi_json.decode(data)
             end
@@ -425,13 +423,12 @@ function M.banner_refresh(rtb_id, callback)
     assert(M.banner_ready, "Yandex Advertising Network SDK is not initialized.")
     assert(type(rtb_id) == "string")
 
-    yagames_private.banner_refresh(rtb_id, 
-        callback and helper.wrap_for_promise(function(self, err, data)
-            if not err then
-                data = rxi_json.decode(data)
-            end
-            callback(self, err, data)
-        end) or 0)
+    yagames_private.banner_refresh(rtb_id, callback and helper.wrap_for_promise(function(self, err, data)
+        if not err then
+            data = rxi_json.decode(data)
+        end
+        callback(self, err, data)
+    end) or 0)
 end
 
 function M.banner_set(rtb_id, property, value)
