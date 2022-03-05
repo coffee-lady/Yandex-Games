@@ -176,6 +176,29 @@ var LibYaGamesPrivate = {
         }
     },
 
+    YaGamesPrivate_Clipboard_WriteText: function (cb_id, ctext) {
+        var self = YaGamesPrivate;
+        try {
+            var text = UTF8ToString(ctext);
+            self._ysdk
+                .clipboard.writeText(text)
+                .then(() => {
+                    self.send(cb_id, null);
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
+    },
+
+    YaGamesPrivate_DeviceInfo_Type: function () {
+        var self = YaGamesPrivate;
+        var ctype = allocate(intArrayFromString(self._ysdk.deviceInfo.type), "i8", ALLOC_NORMAL);
+        return ctype;
+    },
+
     YaGamesPrivate_DeviceInfo_IsDesktop: function () {
         return YaGamesPrivate._ysdk.deviceInfo.isDesktop();
     },
@@ -186,6 +209,49 @@ var LibYaGamesPrivate = {
 
     YaGamesPrivate_DeviceInfo_IsTablet: function () {
         return YaGamesPrivate._ysdk.deviceInfo.isTablet();
+    },
+
+    YaGamesPrivate_DeviceInfo_IsTV: function () {
+        return YaGamesPrivate._ysdk.deviceInfo.isTV();
+    },
+
+    YaGamesPrivate_Environment: function () {
+        var self = YaGamesPrivate;
+        var str = JSON.stringify(self._ysdk.environment);
+        var cstr = allocate(intArrayFromString(str), "i8", ALLOC_NORMAL);
+        return cstr;
+    },
+
+    YaGamesPrivate_Feedback_CanReview: function (cb_id) {
+        var self = YaGamesPrivate;
+        try {
+            self._ysdk
+                .feedback.canReview()
+                .then((result) => {
+                    self.send(cb_id, null, JSON.stringify(result));
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
+    },
+
+    YaGamesPrivate_Feedback_RequestReview: function (cb_id) {
+        var self = YaGamesPrivate;
+        try {
+            self._ysdk
+                .feedback.requestReview()
+                .then((result) => {
+                    self.send(cb_id, null, JSON.stringify(result));
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
     },
 
     YaGamesPrivate_GetLeaderboards: function (cb_id) {
@@ -422,6 +488,17 @@ var LibYaGamesPrivate = {
         }
     },
 
+    YaGamesPrivate_Player_GetSignature: function () {
+        var self = YaGamesPrivate;
+        var signature = self._player.signature;
+        if (typeof signature === "string") {
+            var csignature = allocate(intArrayFromString(signature), "i8", ALLOC_NORMAL);
+            return csignature;
+        } else {
+            return 0;
+        }
+    },
+
     YaGamesPrivate_Player_GetID: function () {
         var self = YaGamesPrivate;
         var cid = allocate(intArrayFromString("" + self._player.getID()), "i8", ALLOC_NORMAL);
@@ -546,6 +623,116 @@ var LibYaGamesPrivate = {
         } catch (err) {
             self.delaySend(cb_id, self.toErrStr(err));
         }
+    },
+
+    YaGamesPrivate_Screen_Fullscreen_Status: function () {
+        var status = YaGamesPrivate._ysdk.screen.fullscreen.status;
+        var cstatus = allocate(intArrayFromString(status), "i8", ALLOC_NORMAL);
+        return cstatus;
+    },
+
+    YaGamesPrivate_Screen_Fullscreen_Request: function (cb_id) {
+        var self = YaGamesPrivate;
+        try {
+            self._ysdk
+                .screen.fullscreen.request()
+                .then(() => {
+                    self.send(cb_id, null);
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
+    },
+
+    YaGamesPrivate_Screen_Fullscreen_Exit: function (cb_id) {
+        var self = YaGamesPrivate;
+        try {
+            self._ysdk
+                .screen.fullscreen.exit()
+                .then(() => {
+                    self.send(cb_id, null);
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
+    },
+
+    YaGamesPrivate_GetStorage: function (cb_id) {
+        var self = YaGamesPrivate;
+        try {
+            self._ysdk
+                .getStorage()
+                .then((storage) => {
+                    self._storage = storage;
+                    self.send(cb_id);
+                })
+                .catch((err) => {
+                    self.send(cb_id, self.toErrStr(err));
+                });
+        } catch (err) {
+            self.delaySend(cb_id, self.toErrStr(err));
+        }
+    },
+
+    YaGamesPrivate_Storage_GetItem: function (ckey) {
+        var self = YaGamesPrivate;
+        var key = UTF8ToString(ckey);
+        var value = self._storage.getItem(key);
+        if (typeof value === "string") {
+            var cvalue = allocate(intArrayFromString(value), "i8", ALLOC_NORMAL);
+            return cvalue;
+        } else {
+            return 0;
+        }
+    },
+
+    YaGamesPrivate_Storage_SetItem: function (ckey, cvalue) {
+        // https://developer.mozilla.org/en-US/docs/Web/API/Storage/setItem
+        // setItem() may throw an exception if the storage is full. Particularly, in Mobile Safari (since iOS 5)
+        // it always throws when the user enters private mode. (Safari sets the quota to 0 bytes in private mode,
+        // unlike other browsers, which allow storage in private mode using separate data containers.) Hence
+        // developers should make sure to always catch possible exceptions from setItem().
+        var self = YaGamesPrivate;
+        var key = UTF8ToString(ckey);
+        var value = UTF8ToString(cvalue);
+        try {
+            self._storage.setItem(key, value);
+        } catch (e) {
+            console.warn("yagames.storage_set_item:", e);
+        }
+    },
+
+    YaGamesPrivate_Storage_RemoveItem: function (ckey) {
+        var self = YaGamesPrivate;
+        var key = UTF8ToString(ckey);
+        self._storage.removeItem(key);
+    },
+
+    YaGamesPrivate_Storage_Clear: function () {
+        var self = YaGamesPrivate;
+        self._storage.clear();
+    },
+
+    YaGamesPrivate_Storage_Key: function (n) {
+        var self = YaGamesPrivate;
+        var key = self._storage.key(n);
+        if (typeof key === "string") {
+            var ckey = allocate(intArrayFromString(key), "i8", ALLOC_NORMAL);
+            return ckey;
+        } else {
+            return 0;
+        }
+    },
+
+    YaGamesPrivate_Storage_Length: function () {
+        var self = YaGamesPrivate;
+        return self._storage.length;
     },
 
     YaGamesPrivate_Banner_Init: function (cb_id) {
